@@ -1,0 +1,35 @@
+name: Generate File List
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate files.json
+        run: |
+          echo '[' > files.json
+          find . -type f -o -type d | grep -v '^\./\.git' | grep -v '^\.$' | sort | while read f; do
+            name="${f#./}"
+            [ -z "$name" ] && continue
+            if [ -d "$f" ]; then
+              type="dir"
+            else
+              type="file"
+            fi
+            echo "{\"name\":\"$name\",\"type\":\"$type\"}," >> files.json
+          done
+          sed -i '$ s/,$//' files.json
+          echo ']' >> files.json
+          
+      - name: Commit files.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add files.json
+          git diff --staged --quiet || git commit -m "Update file list"
+          git push
