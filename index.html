@@ -33,7 +33,6 @@
                 const list = document.getElementById('list');
                 list.innerHTML = '';
                 
-                // 过滤并排序：文件夹优先，然后按数字自然排序
                 const items = data
                     .filter(f => !ignore.includes(f.name))
                     .sort((a, b) => {
