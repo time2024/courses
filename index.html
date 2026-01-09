@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手写笔记</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+        a { color: #0066cc; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        li { margin: 8px 0; }
+        #back { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h2>📒 手写笔记</h2>
+    <div id="back"></div>
+    <ul id="list"><li>加载中...</li></ul>
+
+    <script>
+        const USER = 'time2024', REPO = 'courses';
+        const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore'];
+        const path = new URLSearchParams(location.search).get('path') || '';
+        
+        // 返回上级
+        if (path) {
+            const parent = path.includes('/') ? '?path=' + path.substring(0, path.lastIndexOf('/')) : '?';
+            document.getElementById('back').innerHTML = `<a href="${parent}">⬅ 返回上级</a>`;
+        }
+
+        // 加载目录
+        fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`)
+            .then(r => r.json())
+            .then(data => {
+                const list = document.getElementById('list');
+                list.innerHTML = '';
+                data.filter(f => !ignore.includes(f.name)).forEach(f => {
+                    const li = document.createElement('li');
+                    if (f.type === 'dir') {
+                        li.innerHTML = `📁 <a href="?path=${path ? path + '/' : ''}${f.name}">${f.name}</a>`;
+                    } else {
+                        li.innerHTML = `📄 <a href="${f.download_url}" target="_blank">${f.name}</a>`;
+                    }
+                    list.appendChild(li);
+                });
+            });
+    </script>
+</body>
+</html>
