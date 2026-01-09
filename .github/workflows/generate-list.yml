@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,19 +15,28 @@ jobs:
       
       - name: Generate files.json
         run: |
-          echo '[' > files.json
-          find . -type f -o -type d | grep -v '^\./\.git' | grep -v '^\.$' | sort | while read f; do
-            name="${f#./}"
-            [ -z "$name" ] && continue
-            if [ -d "$f" ]; then
-              type="dir"
-            else
-              type="file"
-            fi
-            echo "{\"name\":\"$name\",\"type\":\"$type\"}," >> files.json
-          done
-          sed -i '$ s/,$//' files.json
-          echo ']' >> files.json
+          python3 << 'EOF'
+          import os
+          import json
+
+          ignore = ['.git', '.github', 'index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json']
+          files = []
+
+          for root, dirs, filenames in os.walk('.'):
+              dirs[:] = [d for d in dirs if d not in ignore and not d.startswith('.')]
+              for d in dirs:
+                  path = os.path.join(root, d)[2:]
+                  files.append({"name": path, "type": "dir"})
+              for f in filenames:
+                  if f not in ignore and not f.startswith('.'):
+                      path = os.path.join(root, f)[2:]
+                      files.append({"name": path, "type": "file"})
+
+          files.sort(key=lambda x: x["name"])
+
+          with open('files.json', 'w', encoding='utf-8') as f:
+              json.dump(files, f, ensure_ascii=False, indent=2)
+          EOF
           
       - name: Commit files.json
         run: |
