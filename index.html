@@ -22,19 +22,27 @@
         const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore'];
         const path = new URLSearchParams(location.search).get('path') || '';
         
-        // 返回上级
         if (path) {
             const parent = path.includes('/') ? '?path=' + path.substring(0, path.lastIndexOf('/')) : '?';
             document.getElementById('back').innerHTML = `<a href="${parent}">⬅ 返回上级</a>`;
         }
 
-        // 加载目录
         fetch(`https://api.github.com/repos/${USER}/${REPO}/contents/${path}`)
             .then(r => r.json())
             .then(data => {
                 const list = document.getElementById('list');
                 list.innerHTML = '';
-                data.filter(f => !ignore.includes(f.name)).forEach(f => {
+                
+                // 过滤并排序：文件夹优先，然后按数字自然排序
+                const items = data
+                    .filter(f => !ignore.includes(f.name))
+                    .sort((a, b) => {
+                        if (a.type === 'dir' && b.type !== 'dir') return -1;
+                        if (a.type !== 'dir' && b.type === 'dir') return 1;
+                        return a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
+                    });
+
+                items.forEach(f => {
                     const li = document.createElement('li');
                     if (f.type === 'dir') {
                         li.innerHTML = `📁 <a href="?path=${path ? path + '/' : ''}${f.name}">${f.name}</a>`;
