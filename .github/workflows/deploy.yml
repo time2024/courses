@@ -1,0 +1,44 @@
+name: Deploy with Password
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      
+      - name: Inject password
+        run: |
+          # 将 index.html 中的密码占位符替换为实际密码
+          sed -i "s|PASSWORD_PLACEHOLDER|${{ secrets.PAGE_PASSWORD }}|g" index.html
+          
+          # 验证替换是否成功（可选，用于调试）
+          echo "Password injection completed"
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

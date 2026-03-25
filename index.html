@@ -3,100 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手写笔记</title>
+    <title>手写笔记 - 密码保护</title>
     <style>
         body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+        #password-container {
+            text-align: center;
+            margin-top: 100px;
+            padding: 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        input, button {
+            padding: 10px 15px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+        input {
+            border: 1px solid #ccc;
+            width: 200px;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover { background: #0052a3; }
+        .error { color: red; margin-top: 10px; }
+        #content { display: none; }
         a { color: #0066cc; text-decoration: none; }
         a:hover { text-decoration: underline; }
         li { margin: 8px 0; }
         #back { margin-bottom: 20px; }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <h2>📒 手写笔记</h2>
-    <div id="back"></div>
-    <ul id="list"><li>加载中...</li></ul>
+    <div id="password-container">
+        <h2>🔒 请输入密码访问</h2>
+        <p style="color: #666; font-size: 14px;">本资料仅供大连理工大学软件学院学生复习使用</p>
+        <input type="password" id="password" placeholder="请输入密码" autocomplete="off" onkeypress="if(event.key==='Enter') checkPassword()">
+        <button onclick="checkPassword()">验证</button>
+        <div id="error-message" class="error"></div>
+    </div>
+
+    <div id="content">
+        <h2>📒 手写笔记</h2>
+        <div id="back"></div>
+        <ul id="list"><li>加载中...</li></ul>
+        <div class="footer">
+            📚 仅供学习参考 | 请勿外传
+        </div>
+    </div>
 
     <script>
-        const REPO_URL = 'https://raw.githubusercontent.com/time2024/courses/main';
-        const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', '.github'];
-        const path = new URLSearchParams(location.search).get('path') || '';
+        // 这个占位符会在 GitHub Actions 构建时被替换为实际的密码
+        const VALID_PASSWORDS = ['PASSWORD_PLACEHOLDER'];
         
-        if (path) {
-            const parent = path.includes('/') ? '?path=' + path.substring(0, path.lastIndexOf('/')) : '?';
-            document.getElementById('back').innerHTML = `<a href="${parent}">⬅ 返回上级</a>`;
+        function checkPassword() {
+            const inputPwd = document.getElementById('password').value;
+            if (VALID_PASSWORDS.includes(inputPwd)) {
+                sessionStorage.setItem('authenticated', 'true');
+                showContent();
+            } else {
+                document.getElementById('error-message').innerText = '密码错误，请重试';
+                document.getElementById('password').value = '';
+                document.getElementById('password').focus();
+            }
         }
-
-        fetch('files.json')
-            .then(r => r.json())
-            .then(allFiles => {
-                const list = document.getElementById('list');
-                list.innerHTML = '';
-                
-                // 筛选当前目录下的文件
-                const currentItems = [];
-                const prefix = path ? path + '/' : '';
-                
-                allFiles.forEach(f => {
-                    // 跳过忽略的文件
-                    if (ignore.some(ig => f.name === ig || f.name.startsWith(ig + '/') || f.name.startsWith('.'))) return;
+        
+        function showContent() {
+            document.getElementById('password-container').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            loadContent();
+        }
+        
+        function loadContent() {
+            const REPO_URL = 'https://raw.githubusercontent.com/time2024/courses/main';
+            const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', '.github'];
+            const path = new URLSearchParams(location.search).get('path') || '';
+            
+            if (path) {
+                const parent = path.includes('/') ? '?path=' + path.substring(0, path.lastIndexOf('/')) : '?';
+                document.getElementById('back').innerHTML = `<a href="${parent}">⬅ 返回上级</a>`;
+            }
+        
+            fetch('files.json')
+                .then(r => r.json())
+                .then(allFiles => {
+                    const list = document.getElementById('list');
+                    list.innerHTML = '';
                     
-                    // 匹配当前目录
-                    if (path === '') {
-                        // 根目录：只显示顶级项目
-                        if (!f.name.includes('/')) {
-                            currentItems.push({ name: f.name, type: f.type });
-                        } else {
-                            // 添加顶级文件夹
-                            const topFolder = f.name.split('/')[0];
-                            if (!currentItems.find(i => i.name === topFolder)) {
-                                currentItems.push({ name: topFolder, type: 'dir' });
+                    const currentItems = [];
+                    const prefix = path ? path + '/' : '';
+                    
+                    allFiles.forEach(f => {
+                        if (ignore.some(ig => f.name === ig || f.name.startsWith(ig + '/') || f.name.startsWith('.'))) return;
+                        
+                        if (path === '') {
+                            if (!f.name.includes('/')) {
+                                currentItems.push({ name: f.name, type: f.type });
+                            } else {
+                                const topFolder = f.name.split('/')[0];
+                                if (!currentItems.find(i => i.name === topFolder)) {
+                                    currentItems.push({ name: topFolder, type: 'dir' });
+                                }
                             }
-                        }
-                    } else {
-                        // 子目录
-                        if (f.name.startsWith(prefix)) {
-                            const rest = f.name.slice(prefix.length);
-                            if (rest && !rest.includes('/')) {
-                                currentItems.push({ name: rest, type: f.type, fullPath: f.name });
-                            } else if (rest) {
-                                const subFolder = rest.split('/')[0];
-                                if (!currentItems.find(i => i.name === subFolder)) {
-                                    currentItems.push({ name: subFolder, type: 'dir', fullPath: prefix + subFolder });
+                        } else {
+                            if (f.name.startsWith(prefix)) {
+                                const rest = f.name.slice(prefix.length);
+                                if (rest && !rest.includes('/')) {
+                                    currentItems.push({ name: rest, type: f.type, fullPath: f.name });
+                                } else if (rest) {
+                                    const subFolder = rest.split('/')[0];
+                                    if (!currentItems.find(i => i.name === subFolder)) {
+                                        currentItems.push({ name: subFolder, type: 'dir', fullPath: prefix + subFolder });
+                                    }
                                 }
                             }
                         }
-                    }
-                });
-
-                // 过滤并排序
-                const items = currentItems
-                    .filter(f => !ignore.includes(f.name))
-                    .sort((a, b) => {
-                        if (a.type === 'dir' && b.type !== 'dir') return -1;
-                        if (a.type !== 'dir' && b.type === 'dir') return 1;
-                        return a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
                     });
-
-                if (items.length === 0) {
-                    list.innerHTML = '<li>暂无内容</li>';
-                    return;
-                }
-
-                items.forEach(f => {
-                    const li = document.createElement('li');
-                    const fullPath = f.fullPath || f.name;
-                    if (f.type === 'dir') {
-                        li.innerHTML = `📁 <a href="?path=${fullPath}">${f.name}</a>`;
-                    } else {
-                        li.innerHTML = `📄 <a href="${REPO_URL}/${fullPath}" target="_blank">${f.name}</a>`;
+        
+                    const items = currentItems
+                        .filter(f => !ignore.includes(f.name))
+                        .sort((a, b) => {
+                            if (a.type === 'dir' && b.type !== 'dir') return -1;
+                            if (a.type !== 'dir' && b.type === 'dir') return 1;
+                            return a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
+                        });
+        
+                    if (items.length === 0) {
+                        list.innerHTML = '<li>暂无内容</li>';
+                        return;
                     }
-                    list.appendChild(li);
+        
+                    items.forEach(f => {
+                        const li = document.createElement('li');
+                        const fullPath = f.fullPath || f.name;
+                        if (f.type === 'dir') {
+                            li.innerHTML = `📁 <a href="?path=${fullPath}">${f.name}</a>`;
+                        } else {
+                            li.innerHTML = `📄 <a href="${REPO_URL}/${fullPath}" target="_blank">${f.name}</a>`;
+                        }
+                        list.appendChild(li);
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('list').innerHTML = '<li>加载失败，请刷新</li>';
                 });
-            })
-            .catch(() => {
-                document.getElementById('list').innerHTML = '<li>加载失败，请刷新</li>';
-            });
+        }
+        
+        // 检查是否已经验证过（有效期为当前会话）
+        if (sessionStorage.getItem('authenticated') === 'true') {
+            showContent();
+        }
     </script>
 </body>
 </html>
