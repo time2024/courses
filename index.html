@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手写笔记</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+        a { color: #0066cc; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        li { margin: 8px 0; }
+        #back { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h2>📒 手写笔记</h2>
+    <div id="back"></div>
+    <ul id="list"><li>加载中...</li></ul>
+
+    <script>
+        const REPO_URL = 'https://raw.githubusercontent.com/time2024/courses/main';
+        const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', '.github'];
+        const path = new URLSearchParams(location.search).get('path') || '';
+        
+        if (path) {
+            const parent = path.includes('/') ? '?path=' + path.substring(0, path.lastIndexOf('/')) : '?';
+            document.getElementById('back').innerHTML = `<a href="${parent}">⬅ 返回上级</a>`;
+        }
+
+        fetch('files.json')
+            .then(r => r.json())
+            .then(allFiles => {
+                const list = document.getElementById('list');
+                list.innerHTML = '';
+                
+                // 筛选当前目录下的文件
+                const currentItems = [];
+                const prefix = path ? path + '/' : '';
+                
+                allFiles.forEach(f => {
+                    // 跳过忽略的文件
+                    if (ignore.some(ig => f.name === ig || f.name.startsWith(ig + '/') || f.name.startsWith('.'))) return;
+                    
+                    // 匹配当前目录
+                    if (path === '') {
+                        // 根目录：只显示顶级项目
+                        if (!f.name.includes('/')) {
+                            currentItems.push({ name: f.name, type: f.type });
+                        } else {
+                            // 添加顶级文件夹
+                            const topFolder = f.name.split('/')[0];
+                            if (!currentItems.find(i => i.name === topFolder)) {
+                                currentItems.push({ name: topFolder, type: 'dir' });
+                            }
+                        }
+                    } else {
+                        // 子目录
+                        if (f.name.startsWith(prefix)) {
+                            const rest = f.name.slice(prefix.length);
+                            if (rest && !rest.includes('/')) {
+                                currentItems.push({ name: rest, type: f.type, fullPath: f.name });
+                            } else if (rest) {
+                                const subFolder = rest.split('/')[0];
+                                if (!currentItems.find(i => i.name === subFolder)) {
+                                    currentItems.push({ name: subFolder, type: 'dir', fullPath: prefix + subFolder });
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 过滤并排序
+                const items = currentItems
+                    .filter(f => !ignore.includes(f.name))
+                    .sort((a, b) => {
+                        if (a.type === 'dir' && b.type !== 'dir') return -1;
+                        if (a.type !== 'dir' && b.type === 'dir') return 1;
+                        return a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
+                    });
+
+                if (items.length === 0) {
+                    list.innerHTML = '<li>暂无内容</li>';
+                    return;
+                }
+
+                items.forEach(f => {
+                    const li = document.createElement('li');
+                    const fullPath = f.fullPath || f.name;
+                    if (f.type === 'dir') {
+                        li.innerHTML = `📁 <a href="?path=${fullPath}">${f.name}</a>`;
+                    } else {
+                        li.innerHTML = `📄 <a href="${REPO_URL}/${fullPath}" target="_blank">${f.name}</a>`;
+                    }
+                    list.appendChild(li);
+                });
+            })
+            .catch(() => {
+                document.getElementById('list').innerHTML = '<li>加载失败，请刷新</li>';
+            });
+    </script>
+</body>
+</html>
