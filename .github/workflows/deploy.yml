@@ -28,8 +28,9 @@ jobs:
           # 将 index.html 中的密码占位符替换为实际密码
           sed -i "s|PASSWORD_PLACEHOLDER|${{ secrets.PAGE_PASSWORD }}|g" index.html
           
-          # 验证替换是否成功（可选，用于调试）
+          # 验证替换是否成功
           echo "Password injection completed"
+          grep "VALID_PASSWORDS" index.html || echo "Warning: Password placeholder not found"
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
