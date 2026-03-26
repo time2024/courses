@@ -1,0 +1,8 @@
++1.左RIP 右静
++2.交换机 左RIP 右OSPF
++3.左OSPF 右静
++4.交换机 左OSPF 右RIP
++5.左OSPF 右RIP
++6.左RIP 右OSPF
++7.左静 右RIP
++8.左静 右OSPF

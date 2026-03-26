@@ -88,7 +88,8 @@
         }
         
         function loadContent() {
-            const REPO_URL = 'https://raw.githubusercontent.com/time2024/courses/main';
+            // 使用 media.githubusercontent.com 来处理 Git LFS 文件
+            const REPO_URL = 'https://media.githubusercontent.com/media/time2024/courses/main';
             const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', '.github'];
             const path = new URLSearchParams(location.search).get('path') || '';
             
@@ -152,7 +153,9 @@
                         if (f.type === 'dir') {
                             li.innerHTML = `📁 <a href="?path=${fullPath}">${f.name}</a>`;
                         } else {
-                            li.innerHTML = `📄 <a href="${REPO_URL}/${fullPath}" target="_blank">${f.name}</a>`;
+                            // 使用 media.githubusercontent.com 下载 LFS 文件，并用 encodeURIComponent 处理中文文件名
+                            const pdfUrl = `${REPO_URL}/${encodeURIComponent(fullPath)}`;
+                            li.innerHTML = `📄 <a href="${pdfUrl}" target="_blank">${f.name}</a>`;
                         }
                         list.appendChild(li);
                     });
