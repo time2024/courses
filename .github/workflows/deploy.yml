@@ -29,7 +29,7 @@ jobs:
           import os
           import json
 
-          ignore = ['.git', '.github', 'index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json']
+          ignore = ['.git', '.github', 'index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', 'CNAME']
           files = []
 
           for root, dirs, filenames in os.walk('.'):
