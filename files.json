@@ -548,10 +548,6 @@
     "type": "file"
   },
   {
-    "name": "CNAME",
-    "type": "file"
-  },
-  {
     "name": "china-university-icon",
     "type": "dir"
   },
