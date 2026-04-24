@@ -88,8 +88,9 @@
         }
         
         function loadContent() {
-            // 使用 media.githubusercontent.com 来处理 Git LFS 文件
-            const REPO_URL = 'https://media.githubusercontent.com/media/time2024/courses/main';
+            // PDF 走 media 兼容 LFS，其他文件走 raw 避免非 LFS 资源 404
+            const MEDIA_REPO_URL = 'https://media.githubusercontent.com/media/time2024/courses/main';
+            const RAW_REPO_URL = 'https://raw.githubusercontent.com/time2024/courses/main';
             const ignore = ['index.html', 'LICENSE', 'README.md', '.gitignore', 'files.json', '.github', 'CNAME'];
             const path = new URLSearchParams(location.search).get('path') || '';
             
@@ -156,7 +157,9 @@
                         } else {
                             // 逐段编码路径，保留 / 作为目录分隔符，避免把整个路径编码成单文件名
                             const encodedPath = fullPath.split('/').map(encodeURIComponent).join('/');
-                            const fileUrl = `${REPO_URL}/${encodedPath}`;
+                            const isPdf = fullPath.toLowerCase().endsWith('.pdf');
+                            const fileBaseUrl = isPdf ? MEDIA_REPO_URL : RAW_REPO_URL;
+                            const fileUrl = `${fileBaseUrl}/${encodedPath}`;
                             li.innerHTML = `📄 <a href="${fileUrl}" target="_blank">${f.name}</a>`;
                         }
                         list.appendChild(li);
