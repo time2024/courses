@@ -86,6 +86,27 @@
             document.getElementById('content').style.display = 'block';
             loadContent();
         }
+
+        async function downloadRemoteFile(event, fileUrl, fileName) {
+            event.preventDefault();
+            try {
+                const resp = await fetch(fileUrl);
+                if (!resp.ok) throw new Error('download failed');
+
+                const blob = await resp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(blobUrl);
+            } catch {
+                // Fallback to direct open if browser blocks cross-origin blob download.
+                window.open(fileUrl, '_blank');
+            }
+        }
         
         function loadContent() {
             // PDF 走 media 兼容 LFS，其他文件走 raw 避免非 LFS 资源 404
@@ -160,7 +181,18 @@
                             const isPdf = fullPath.toLowerCase().endsWith('.pdf');
                             const fileBaseUrl = isPdf ? MEDIA_REPO_URL : RAW_REPO_URL;
                             const fileUrl = `${fileBaseUrl}/${encodedPath}`;
-                            li.innerHTML = `📄 <a href="${fileUrl}" target="_blank">${f.name}</a>`;
+                            const a = document.createElement('a');
+                            a.href = fileUrl;
+                            a.textContent = f.name;
+
+                            if (isPdf) {
+                                a.target = '_blank';
+                            } else {
+                                a.addEventListener('click', (event) => downloadRemoteFile(event, fileUrl, f.name));
+                            }
+
+                            li.append('📄 ');
+                            li.appendChild(a);
                         }
                         list.appendChild(li);
                     });
